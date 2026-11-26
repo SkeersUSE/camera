@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0a0a">
+<title>🎥 Шакальная Камера</title>
+<style>
+  * { box-sizing: border-box; }
+  :root {
+    --bg: #0a0a0a;
+    --panel: #171717;
+    --border: #2a2a2a;
+    --text: #eaeaea;
+    --muted: #8a8a8a;
+    --accent: #4ade80;
+    --danger: #ef4444;
+  }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .app { max-width: 640px; margin: 0 auto; padding: 16px; }
+  header { text-align: center; margin-bottom: 16px; }
+  h1 { margin: 0 0 4px; font-size: 22px; }
+  .subtitle { margin: 0; color: var(--muted); font-size: 13px; }
+
+  .preview-wrap {
+    position: relative;
+    background: #000;
+    border-radius: 12px;
+    overflow: hidden;
+    aspect-ratio: 4 / 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+  }
+  #preview {
+    width: 100%; height: 100%;
+    object-fit: contain;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    background: #000;
+  }
+  .overlay {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    text-align: center; color: var(--muted);
+    padding: 16px; pointer-events: none; font-size: 14px;
+  }
+  .overlay.hidden { display: none; }
+  .rec-indicator {
+    position: absolute; top: 8px; left: 8px;
+    background: rgba(0,0,0,.65);
+    padding: 4px 10px; border-radius: 20px;
+    font-size: 13px; color: #fff;
+    font-variant-numeric: tabular-nums;
+  }
+  .rec-indicator.hidden { display: none; }
+  .rec-indicator .dot { color: var(--danger); }
+
+  .info {
+    margin: 8px 0;
+    font-size: 12px; color: var(--muted);
+    text-align: center; min-height: 16px;
+  }
+  .actions {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 8px; margin: 12px 0;
+  }
+  .btn {
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--panel);
+    color: var(--text);
+    font-size: 15px; font-weight: 500;
+    cursor: pointer;
+    transition: opacity .15s, transform .05s;
+  }
+  .btn:active { transform: scale(.98); }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .btn.primary { background: var(--accent); color: #000; border-color: transparent; }
+  .btn.danger  { background: var(--danger); color: #fff; border-color: transparent; }
+  .btn.recording { animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.65;} }
+
+  .settings {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 12px;
+  }
+  .settings summary {
+    cursor: pointer; font-weight: 600;
+    list-style: none; margin-bottom: 8px;
+  }
+  .settings summary::-webkit-details-marker { display: none; }
+  .settings[open] summary { margin-bottom: 12px; }
+
+  .presets {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 6px; margin-bottom: 12px;
+  }
+  .preset {
+    padding: 8px; border-radius: 8px;
+    border: 1px solid var(--border);
+    background: transparent; color: var(--text);
+    font-size: 12px; cursor: pointer;
+  }
+  .preset:active { background: var(--border); }
+
+  .field {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .field:last-of-type { border-bottom: none; }
+  .field label { font-size: 14px; color: var(--muted); }
+  .field input {
+    width: 100px; padding: 6px 8px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 14px; text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .hint { font-size: 11px; color: var(--muted); margin: 8px 0 0; line-height: 1.4; }
+
+  .status {
+    text-align: center; font-size: 13px;
+    color: var(--muted); min-height: 18px;
+    padding: 8px;
+  }
+  .status.error   { color: var(--danger); }
+  .status.success { color: var(--accent); }
+
+  footer {
+    margin-top: 24px; padding: 12px;
+    text-align: center; font-size: 11px;
+    color: var(--muted); line-height: 1.5;
+    border-top: 1px solid var(--border);
+  }
+  footer p { margin: 0; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>🎥 Шакальная Камера</h1>
+    <p class="subtitle">Низкое разрешение · низкий FPS · низкий битрейт</p>
+  </header>
+
+  <div class="preview-wrap">
+    <video id="preview" playsinline muted autoplay></video>
+    <div id="overlay" class="overlay">Нажмите «Включить камеру»</div>
+    <div id="rec-indicator" class="rec-indicator hidden">
+      <span class="dot">●</span> <span id="timer">00:00</span>
+    </div>
+  </div>
+
+  <div id="info" class="info"></div>
+
+  <div class="actions">
+    <button id="btn-camera" class="btn primary">Включить камеру</button>
+    <button id="btn-switch" class="btn" disabled>🔄 Камера</button>
+    <button id="btn-photo"  class="btn" disabled>📷 Фото</button>
+    <button id="btn-record" class="btn danger" disabled>⏺ Запись</button>
+  </div>
+
+  <details class="settings" open>
+    <summary>⚙️ Настройки качества</summary>
+
+    <div class="presets">
+      <button class="preset" data-preset="light">Лёгкий шакал</button>
+      <button class="preset" data-preset="medium">Шакал</button>
+      <button class="preset" data-preset="ultra">Ультра шакал</button>
+    </div>
+
+    <div class="field">
+      <label for="width">Ширина (px)</label>
+      <input type="number" id="width" min="16" max="1920" value="160">
+    </div>
+    <div class="field">
+      <label for="height">Высота (px)</label>
+      <input type="number" id="height" min="16" max="1080" value="120">
+    </div>
+    <div class="field">
+      <label for="fps">FPS</label>
+      <input type="number" id="fps" min="1" max="60" value="5">
+    </div>
+    <div class="field">
+      <label for="vbitrate">Видео битрейт (кбит/с)</label>
+      <input type="number" id="vbitrate" min="10" max="10000" value="50">
+    </div>
+    <div class="field">
+      <label for="abitrate">Аудио битрейт (кбит/с)</label>
+      <input type="number" id="abitrate" min="4" max="320" value="8">
+    </div>
+    <div class="field">
+      <label for="jquality">Качество JPEG фото (%)</label>
+      <input type="number" id="jquality" min="1" max="100" value="30">
+    </div>
+
+    <p class="hint">
+      Настройки применяются автоматически (камера перезапустится). Некоторые
+      устройства округляют значения до ближайшего поддерживаемого режима.
+    </p>
+  </details>
+
+  <div id="status" class="status"></div>
+
+  <footer>
+    <p>
+      Файлы сохраняются через системное меню «Поделиться» — выберите там
+      «Сохранить видео/изображение». Если меню недоступно, файл скачается
+      в папку «Загрузки».
+    </p>
+  </footer>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  // ---------- Элементы ----------
+  const el = {
+    video:        document.getElementById('preview'),
+    overlay:      document.getElementById('overlay'),
+    recIndicator: document.getElementById('rec-indicator'),
+    timer:        document.getElementById('timer'),
+    info:         document.getElementById('info'),
+    status:       document.getElementById('status'),
+    btnCamera:    document.getElementById('btn-camera'),
+    btnSwitch:    document.getElementById('btn-switch'),
+    btnPhoto:     document.getElementById('btn-photo'),
+    btnRecord:    document.getElementById('btn-record'),
+    width:        document.getElementById('width'),
+    height:       document.getElementById('height'),
+    fps:          document.getElementById('fps'),
+    vbitrate:     document.getElementById('vbitrate'),
+    abitrate:     document.getElementById('abitrate'),
+    jquality:     document.getElementById('jquality'),
+  };
+
+  // ---------- Состояние ----------
+  let currentStream = null;
+  let mediaRecorder = null;
+  let recordedChunks = [];
+  let usedMimeType = '';
+  let facingMode = 'environment';
+  let isRecording = false;
+  let restartTimer = null;
+  let recTimerInterval = null;
+  let recStartTime = 0;
+
+  const presets = {
+    light:  { width: 320, height: 240, fps: 15, vbitrate: 300, abitrate: 48, jquality: 55 },
+    medium: { width: 160, height: 120, fps: 8,  vbitrate: 80,  abitrate: 16, jquality: 30 },
+    ultra:  { width: 80,  height: 60,  fps: 3,  vbitrate: 30,  abitrate: 6,  jquality: 12 },
+  };
+
+  // ---------- Утилиты ----------
+  function setStatus(text, kind) {
+    el.status.textContent = text || '';
+    el.status.className = 'status' + (kind ? ' ' + kind : '');
+  }
+
+  function formatTime(sec) {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+  }
+
+  function getSettings() {
+    return {
+      width:         Math.max(16, parseInt(el.width.value, 10) || 160),
+      height:        Math.max(16, parseInt(el.height.value, 10) || 120),
+      fps:           Math.max(1,  parseInt(el.fps.value, 10) || 5),
+      videoBitrate:  Math.max(1000,  (parseFloat(el.vbitrate.value) || 50) * 1000),
+      audioBitrate:  Math.max(1000,  (parseFloat(el.abitrate.value) || 8)  * 1000),
+      jpegQuality:   Math.min(1, Math.max(0.01, (parseInt(el.jquality.value, 10) || 30) / 100)),
+    };
+  }
+
+  function pickMimeType() {
+    const candidates = [
+      'video/webm;codecs=vp8,opus',
+      'video/webm;codecs=vp9,opus',
+      'video/webm',
+      'video/mp4;codecs=avc1,mp4a.40.2',
+      'video/mp4',
+    ];
+    for (const c of candidates) {
+      try {
+        if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(c)) return c;
+      } catch (_) {}
+    }
+    return '';
+  }
+
+  // ---------- UI состояния ----------
+  function updateUI() {
+    const hasStream = !!currentStream;
+    el.btnCamera.textContent = hasStream ? 'Выключить камеру' : 'Включить камеру';
+    el.btnCamera.classList.toggle('primary', !hasStream);
+    el.btnSwitch.disabled = !hasStream || isRecording;
+    el.btnPhoto.disabled  = !hasStream || isRecording;
+    el.btnRecord.disabled = !hasStream;
+    el.btnRecord.textContent = isRecording ? '⏹ Остановить' : '⏺ Запись';
+    el.btnRecord.classList.toggle('recording', isRecording);
+    el.recIndicator.classList.toggle('hidden', !isRecording);
+    el.overlay.classList.toggle('hidden', hasStream);
+  }
+
+  function updateInfo() {
+    if (!currentStream || !el.video.videoWidth) {
+      el.info.textContent = '';
+      return;
+    }
+    const vt = currentStream.getVideoTracks()[0];
+    const at = currentStream.getAudioTracks()[0];
+    const st = vt && vt.getSettings ? vt.getSettings() : {};
+    const fps = st.frameRate ? st.frameRate.toFixed(1) : '?';
+    el.info.textContent =
+      `Поток: ${el.video.videoWidth}×${el.video.videoHeight} @ ${fps} fps` +
+      (at ? ' • микрофон подключён' : ' • без микрофона');
+  }
+
+  // ---------- Камера ----------
+  async function startCamera() {
+    const s = getSettings();
+    stopCamera(false); // тихо, без сообщений
+
+    const baseVideo = {
+      width:  { ideal: s.width  },
+      height: { ideal: s.height },
+      frameRate: { ideal: s.fps },
+      facingMode,
+    };
+    const baseAudio = {
+      echoCancellation: false,
+      noiseSuppression: false,
+      autoGainControl:  false,
+      channelCount:     { ideal: 1 },
+      sampleRate:       { ideal: 8000 },
+    };
+
+    let stream = null;
+    let audioOk = true;
+
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: baseVideo, audio: baseAudio });
+    } catch (err) {
+      // Пробуем без микрофона — например, если микрофон занят другим приложением
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: baseVideo });
+        audioOk = false;
+      } catch (err2) {
+        setStatus('Не удалось включить камеру: ' + (err2.message || err2.name), 'error');
+        throw err2;
+      }
+    }
+
+    currentStream = stream;
+    el.video.srcObject = stream;
+    try { await el.video.play(); } catch (_) {}
+
+    updateUI();
+    updateInfo();
+
+    if (audioOk) setStatus('Камера включена', 'success');
+    else         setStatus('Микрофон недоступен — видео будет без звука', 'error');
+  }
+
+  function stopCamera(showMessage = true) {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      try { mediaRecorder.stop(); } catch (_) {}
+    }
+    if (currentStream) {
+      currentStream.getTracks().forEach(t => t.stop());
+      currentStream = null;
+    }
+    el.video.srcObject = null;
+    el.info.textContent = '';
+    updateUI();
+    if (showMessage) setStatus('Камера выключена');
+  }
+
+  // ---------- Запись видео ----------
+  function startRecording() {
+    if (!currentStream) return setStatus('Сначала включите камеру', 'error');
+    if (isRecording) return;
+
+    const s = getSettings();
+    usedMimeType = pickMimeType();
+    const options = {
+      videoBitsPerSecond: s.videoBitrate,
+      audioBitsPerSecond: s.audioBitrate,
+    };
+    if (usedMimeType) options.mimeType = usedMimeType;
+
+    try {
+      mediaRecorder = new MediaRecorder(currentStream, options);
+    } catch (e) {
+      setStatus('MediaRecorder не поддерживается: ' + e.message, 'error');
+      return;
+    }
+
+    recordedChunks = [];
+    mediaRecorder.ondataavailable = (e) => {
+      if (e.data && e.data.size > 0) recordedChunks.push(e.data);
+    };
+    mediaRecorder.onstop = () => {
+      const actualType = (mediaRecorder && mediaRecorder.mimeType) || usedMimeType || 'video/webm';
+      const baseType   = actualType.split(';')[0];
+      const ext        = baseType.includes('mp4') ? 'mp4' : 'webm';
+      const blob       = new Blob(recordedChunks, { type: baseType });
+      recordedChunks   = [];
+      const name = 'shaky_' + Date.now() + '.' + ext;
+      saveMedia(blob, name);
+      setStatus('Видео готово (' + (blob.size / 1024).toFixed(1) + ' КБ)', 'success');
+    };
+
+    try {
+      mediaRecorder.start(1000); // выдавать чанки раз в секунду
+    } catch (e) {
+      setStatus('Не удалось начать запись: ' + e.message, 'error');
+      return;
+    }
+
+    isRecording = true;
+    recStartTime = Date.now();
+    el.timer.textContent = '00:00';
+    recTimerInterval = setInterval(() => {
+      const sec = Math.floor((Date.now() - recStartTime) / 1000);
+      el.timer.textContent = formatTime(sec);
+    }, 200);
+    updateUI();
+    setStatus('Идёт запись…');
+  }
+
+  function stopRecording() {
+    if (!isRecording || !mediaRecorder) return;
+    try { mediaRecorder.stop(); } catch (_) {}
+    isRecording = false;
+    clearInterval(recTimerInterval);
+    recTimerInterval = null;
+    updateUI();
+  }
+
+  // ---------- Фото ----------
+  function takePhoto() {
+    if (!currentStream) return setStatus('Сначала включите камеру', 'error');
+    const v = el.video;
+    if (!v.videoWidth || !v.videoHeight) return setStatus('Камера ещё не готова', 'error');
+
+    const s = getSettings();
+    const canvas = document.createElement('canvas');
+    canvas.width  = v.videoWidth;
+    canvas.height = v.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+
+    canvas.toBlob((blob) => {
+      if (!blob) return setStatus('Не удалось сделать фото', 'error');
+      const name = 'shaky_' + Date.now() + '.jpg';
+      saveMedia(blob, name);
+      setStatus('Фото готово (' + (blob.size / 1024).toFixed(1) + ' КБ)', 'success');
+    }, 'image/jpeg', s.jpegQuality);
+  }
+
+  // ---------- Сохранение ----------
+  async function saveMedia(blob, fileName) {
+    // 1) Пробуем Web Share API — на телефоне откроется системное меню,
+    //    где есть «Сохранить видео/изображение» (прямо в галерею).
+    const file = new File([blob], fileName, { type: blob.type });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: 'Сохранить' });
+        return;
+      } catch (err) {
+        if (err && err.name === 'AbortError') return; // пользователь отменил
+        // иначе — падаем в download
+      }
+    }
+
+    // 2) Резервный вариант — скачивание через <a download>
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  // ---------- Настройки: автоприменение ----------
+  function scheduleCameraRestart() {
+    if (!currentStream) return;
+    if (isRecording) {
+      setStatus('Настройки применятся после окончания записи', 'error');
+      return;
+    }
+    clearTimeout(restartTimer);
+    restartTimer = setTimeout(() => {
+      startCamera().catch(() => {});
+    }, 400);
+  }
+
+  // ---------- Обработчики ----------
+  el.btnCamera.addEventListener('click', async () => {
+    if (currentStream) {
+      stopCamera();
+    } else {
+      try { await startCamera(); } catch (_) {}
+    }
+  });
+
+  el.btnSwitch.addEventListener('click', async () => {
+    facingMode = facingMode === 'environment' ? 'user' : 'environment';
+    if (currentStream) {
+      try { await startCamera(); } catch (_) {}
+    }
+  });
+
+  el.btnPhoto.addEventListener('click', takePhoto);
+
+  el.btnRecord.addEventListener('click', () => {
+    if (isRecording) stopRecording();
+    else startRecording();
+  });
+
+  // Пресеты
+  document.querySelectorAll('.preset').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const p = presets[btn.dataset.preset];
+      if (!p) return;
+      el.width.value    = p.width;
+      el.height.value   = p.height;
+      el.fps.value      = p.fps;
+      el.vbitrate.value = p.vbitrate;
+      el.abitrate.value = p.abitrate;
+      el.jquality.value = p.jquality;
+      scheduleCameraRestart();
+    });
+  });
+
+  // Все поля настроек
+  [el.width, el.height, el.fps, el.vbitrate, el.abitrate, el.jquality]
+    .forEach(inp => inp.addEventListener('input', scheduleCameraRestart));
+
+  // Метаданные видео — обновим инфо-строку
+  el.video.addEventListener('loadedmetadata', updateInfo);
+
+  // При закрытии страницы — освобождаем камеру
+  window.addEventListener('pagehide', () => stopCamera(false));
+
+  // Проверка защищённого контекста
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    setStatus(
+      '⚠️ Браузер не даёт доступ к камере. Нужен HTTPS (GitHub Pages подходит) ' +
+      'и современный браузер.',
+      'error'
+    );
+  }
+
+  updateUI();
+})();
+</script>
+</body>
+</html>
