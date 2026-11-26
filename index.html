@@ -6,45 +6,47 @@
 <meta name="theme-color" content="#0a0a0a">
 <title>🎥 Шакальная Камера</title>
 <style>
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   :root {
-    --bg: #0a0a0a;
-    --panel: #171717;
-    --border: #2a2a2a;
-    --text: #eaeaea;
-    --muted: #8a8a8a;
-    --accent: #4ade80;
-    --danger: #ef4444;
+    --bg: #0a0a0a; --panel: #171717; --border: #2a2a2a;
+    --text: #eaeaea; --muted: #8a8a8a;
+    --accent: #4ade80; --danger: #ef4444; --blue: #3b82f6;
   }
   html, body {
     margin: 0; padding: 0;
-    background: var(--bg);
-    color: var(--text);
+    background: var(--bg); color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
   }
   .app { max-width: 640px; margin: 0 auto; padding: 16px; }
-  header { text-align: center; margin-bottom: 16px; }
+
+  header { text-align: center; margin-bottom: 12px; }
   h1 { margin: 0 0 4px; font-size: 22px; }
   .subtitle { margin: 0; color: var(--muted); font-size: 13px; }
 
+  /* Табы */
+  .tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+  .tab {
+    flex: 1; padding: 10px;
+    background: var(--panel); color: var(--text);
+    border: 1px solid var(--border); border-radius: 10px;
+    font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  .tab.active { background: var(--accent); color: #000; border-color: transparent; }
+
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* Камера */
   .preview-wrap {
-    position: relative;
-    background: #000;
-    border-radius: 12px;
-    overflow: hidden;
-    aspect-ratio: 4 / 3;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    position: relative; background: #000; border-radius: 12px; overflow: hidden;
+    aspect-ratio: 4 / 3; display: flex; align-items: center; justify-content: center;
     border: 1px solid var(--border);
   }
   #preview {
-    width: 100%; height: 100%;
-    object-fit: contain;
-    image-rendering: pixelated;
-    image-rendering: crisp-edges;
-    background: #000;
+    width: 100%; height: 100%; object-fit: contain;
+    image-rendering: pixelated; image-rendering: crisp-edges; background: #000;
   }
   .overlay {
     position: absolute; inset: 0;
@@ -55,31 +57,18 @@
   .overlay.hidden { display: none; }
   .rec-indicator {
     position: absolute; top: 8px; left: 8px;
-    background: rgba(0,0,0,.65);
-    padding: 4px 10px; border-radius: 20px;
-    font-size: 13px; color: #fff;
-    font-variant-numeric: tabular-nums;
+    background: rgba(0,0,0,.65); padding: 4px 10px; border-radius: 20px;
+    font-size: 13px; color: #fff; font-variant-numeric: tabular-nums;
   }
   .rec-indicator.hidden { display: none; }
   .rec-indicator .dot { color: var(--danger); }
+  .info { margin: 8px 0; font-size: 12px; color: var(--muted); text-align: center; min-height: 16px; }
 
-  .info {
-    margin: 8px 0;
-    font-size: 12px; color: var(--muted);
-    text-align: center; min-height: 16px;
-  }
-  .actions {
-    display: grid; grid-template-columns: 1fr 1fr;
-    gap: 8px; margin: 12px 0;
-  }
+  .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0; }
   .btn {
-    padding: 12px;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    background: var(--panel);
-    color: var(--text);
-    font-size: 15px; font-weight: 500;
-    cursor: pointer;
+    padding: 12px; border: 1px solid var(--border); border-radius: 10px;
+    background: var(--panel); color: var(--text);
+    font-size: 15px; font-weight: 500; cursor: pointer;
     transition: opacity .15s, transform .05s;
   }
   .btn:active { transform: scale(.98); }
@@ -90,56 +79,112 @@
   @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.65;} }
 
   .settings {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 12px;
-    margin-bottom: 12px;
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 12px; padding: 12px; margin-bottom: 12px;
   }
-  .settings summary {
-    cursor: pointer; font-weight: 600;
-    list-style: none; margin-bottom: 8px;
-  }
+  .settings summary { cursor: pointer; font-weight: 600; list-style: none; margin-bottom: 8px; }
   .settings summary::-webkit-details-marker { display: none; }
   .settings[open] summary { margin-bottom: 12px; }
 
-  .presets {
-    display: grid; grid-template-columns: repeat(3, 1fr);
-    gap: 6px; margin-bottom: 12px;
-  }
+  .presets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 12px; }
   .preset {
-    padding: 8px; border-radius: 8px;
-    border: 1px solid var(--border);
-    background: transparent; color: var(--text);
-    font-size: 12px; cursor: pointer;
+    padding: 8px; border-radius: 8px; border: 1px solid var(--border);
+    background: transparent; color: var(--text); font-size: 12px; cursor: pointer;
   }
   .preset:active { background: var(--border); }
 
   .field {
     display: flex; align-items: center; justify-content: space-between;
-    gap: 12px; padding: 6px 0;
-    border-bottom: 1px solid var(--border);
+    gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--border);
   }
   .field:last-of-type { border-bottom: none; }
   .field label { font-size: 14px; color: var(--muted); }
   .field input {
-    width: 100px; padding: 6px 8px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    color: var(--text);
-    font-size: 14px; text-align: right;
-    font-variant-numeric: tabular-nums;
+    width: 100px; padding: 6px 8px; background: var(--bg);
+    border: 1px solid var(--border); border-radius: 6px; color: var(--text);
+    font-size: 14px; text-align: right; font-variant-numeric: tabular-nums;
   }
   .hint { font-size: 11px; color: var(--muted); margin: 8px 0 0; line-height: 1.4; }
 
-  .status {
-    text-align: center; font-size: 13px;
-    color: var(--muted); min-height: 18px;
-    padding: 8px;
-  }
+  .status { text-align: center; font-size: 13px; color: var(--muted); min-height: 18px; padding: 8px; }
   .status.error   { color: var(--danger); }
   .status.success { color: var(--accent); }
+
+  /* Галерея */
+  .gallery-top {
+    display: flex; gap: 8px; align-items: center; justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .gallery-top .info-line { font-size: 12px; color: var(--muted); }
+  .gallery-actions { display: flex; gap: 6px; }
+  .btn-small {
+    padding: 8px 12px; font-size: 12px; border-radius: 8px;
+    background: var(--panel); color: var(--text);
+    border: 1px solid var(--border); cursor: pointer;
+  }
+  .btn-small.danger { color: var(--danger); }
+  .gallery-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 8px;
+  }
+  .card {
+    position: relative; background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; overflow: hidden;
+  }
+  .card .thumb {
+    width: 100%; aspect-ratio: 1; object-fit: cover; background: #000;
+    display: block; cursor: pointer;
+  }
+  .card .badge {
+    position: absolute; top: 6px; left: 6px;
+    background: rgba(0,0,0,.75); color: #fff;
+    font-size: 10px; padding: 2px 6px; border-radius: 10px;
+    font-weight: 600;
+  }
+  .card .meta {
+    padding: 6px 8px; font-size: 10px; color: var(--muted);
+    display: flex; justify-content: space-between; gap: 4px;
+  }
+  .card .meta .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .card .card-actions {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 1px; background: var(--border);
+  }
+  .card .card-actions button {
+    padding: 8px 0; background: var(--panel); color: var(--text);
+    border: none; font-size: 14px; cursor: pointer;
+  }
+  .card .card-actions button:active { background: var(--border); }
+  .card .card-actions .del { color: var(--danger); }
+
+  .empty-gallery {
+    text-align: center; padding: 48px 16px; color: var(--muted);
+    font-size: 14px; line-height: 1.5;
+  }
+
+  /* Модалка просмотра */
+  .modal {
+    display: none; position: fixed; inset: 0; z-index: 100;
+    background: rgba(0,0,0,.95);
+    align-items: center; justify-content: center;
+    padding: 16px;
+  }
+  .modal.open { display: flex; flex-direction: column; }
+  .modal-content {
+    max-width: 100%; max-height: 80vh;
+    display: flex; align-items: center; justify-content: center;
+    flex: 1;
+  }
+  .modal-content img,
+  .modal-content video {
+    max-width: 100%; max-height: 80vh;
+    image-rendering: pixelated;
+    border-radius: 8px;
+  }
+  .modal-toolbar {
+    display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;
+    justify-content: center;
+  }
 
   footer {
     margin-top: 24px; padding: 12px;
@@ -157,99 +202,180 @@
     <p class="subtitle">Низкое разрешение · низкий FPS · низкий битрейт</p>
   </header>
 
-  <div class="preview-wrap">
-    <video id="preview" playsinline muted autoplay></video>
-    <div id="overlay" class="overlay">Нажмите «Включить камеру»</div>
-    <div id="rec-indicator" class="rec-indicator hidden">
-      <span class="dot">●</span> <span id="timer">00:00</span>
-    </div>
+  <div class="tabs">
+    <button class="tab active" data-tab="camera">📷 Камера</button>
+    <button class="tab" data-tab="gallery">🖼 Галерея</button>
   </div>
 
-  <div id="info" class="info"></div>
-
-  <div class="actions">
-    <button id="btn-camera" class="btn primary">Включить камеру</button>
-    <button id="btn-switch" class="btn" disabled>🔄 Камера</button>
-    <button id="btn-photo"  class="btn" disabled>📷 Фото</button>
-    <button id="btn-record" class="btn danger" disabled>⏺ Запись</button>
-  </div>
-
-  <details class="settings" open>
-    <summary>⚙️ Настройки качества</summary>
-
-    <div class="presets">
-      <button class="preset" data-preset="light">Лёгкий шакал</button>
-      <button class="preset" data-preset="medium">Шакал</button>
-      <button class="preset" data-preset="ultra">Ультра шакал</button>
+  <!-- ========== КАМЕРА ========== -->
+  <section id="view-camera" class="view active">
+    <div class="preview-wrap">
+      <video id="preview" playsinline muted autoplay></video>
+      <div id="overlay" class="overlay">Нажмите «Включить камеру»</div>
+      <div id="rec-indicator" class="rec-indicator hidden">
+        <span class="dot">●</span> <span id="timer">00:00</span>
+      </div>
     </div>
 
-    <div class="field">
-      <label for="width">Ширина (px)</label>
-      <input type="number" id="width" min="16" max="1920" value="160">
-    </div>
-    <div class="field">
-      <label for="height">Высота (px)</label>
-      <input type="number" id="height" min="16" max="1080" value="120">
-    </div>
-    <div class="field">
-      <label for="fps">FPS</label>
-      <input type="number" id="fps" min="1" max="60" value="5">
-    </div>
-    <div class="field">
-      <label for="vbitrate">Видео битрейт (кбит/с)</label>
-      <input type="number" id="vbitrate" min="10" max="10000" value="50">
-    </div>
-    <div class="field">
-      <label for="abitrate">Аудио битрейт (кбит/с)</label>
-      <input type="number" id="abitrate" min="4" max="320" value="8">
-    </div>
-    <div class="field">
-      <label for="jquality">Качество JPEG фото (%)</label>
-      <input type="number" id="jquality" min="1" max="100" value="30">
+    <div id="info" class="info"></div>
+
+    <div class="actions">
+      <button id="btn-camera" class="btn primary">Включить камеру</button>
+      <button id="btn-switch" class="btn" disabled>🔄 Камера</button>
+      <button id="btn-photo"  class="btn" disabled>📷 Фото</button>
+      <button id="btn-record" class="btn danger" disabled>⏺ Запись</button>
     </div>
 
-    <p class="hint">
-      Настройки применяются автоматически (камера перезапустится). Некоторые
-      устройства округляют значения до ближайшего поддерживаемого режима.
-    </p>
-  </details>
+    <details class="settings">
+      <summary>⚙️ Настройки качества</summary>
 
-  <div id="status" class="status"></div>
+      <div class="presets">
+        <button class="preset" data-preset="light">Лёгкий шакал</button>
+        <button class="preset" data-preset="medium">Шакал</button>
+        <button class="preset" data-preset="ultra">Ультра шакал</button>
+      </div>
+
+      <div class="field"><label for="width">Ширина (px)</label>
+        <input type="number" id="width" min="16" max="1920" value="160"></div>
+      <div class="field"><label for="height">Высота (px)</label>
+        <input type="number" id="height" min="16" max="1080" value="120"></div>
+      <div class="field"><label for="fps">FPS</label>
+        <input type="number" id="fps" min="1" max="60" value="5"></div>
+      <div class="field"><label for="vbitrate">Видео битрейт (кбит/с)</label>
+        <input type="number" id="vbitrate" min="10" max="10000" value="50"></div>
+      <div class="field"><label for="abitrate">Аудио битрейт (кбит/с)</label>
+        <input type="number" id="abitrate" min="4" max="320" value="8"></div>
+      <div class="field"><label for="jquality">Качество JPEG фото (%)</label>
+        <input type="number" id="jquality" min="1" max="100" value="30"></div>
+
+      <p class="hint">
+        Настройки применяются автоматически (камера перезапустится). Некоторые
+        устройства округляют значения до ближайшего поддерживаемого режима.
+      </p>
+    </details>
+
+    <div id="status" class="status"></div>
+  </section>
+
+  <!-- ========== ГАЛЕРЕЯ ========== -->
+  <section id="view-gallery" class="view">
+    <div class="gallery-top">
+      <div id="gallery-info" class="info-line">Загрузка…</div>
+      <div class="gallery-actions">
+        <button id="btn-clear-all" class="btn-small danger">Очистить</button>
+      </div>
+    </div>
+    <div id="gallery-grid" class="gallery-grid"></div>
+    <div id="gallery-empty" class="empty-gallery" style="display:none;">
+      🕳️ Здесь пока пусто.<br>Снимите фото или видео на вкладке «Камера».
+    </div>
+  </section>
 
   <footer>
     <p>
-      Файлы сохраняются через системное меню «Поделиться» — выберите там
-      «Сохранить видео/изображение». Если меню недоступно, файл скачается
-      в папку «Загрузки».
+      Файлы хранятся в этом браузере (IndexedDB). Их можно скачать или отправить
+      в системную галерею через «Поделиться». Очистка данных браузера удалит галерею.
     </p>
   </footer>
+</div>
+
+<!-- Модалка просмотра -->
+<div id="modal" class="modal">
+  <div class="modal-content" id="modal-content"></div>
+  <div class="modal-toolbar">
+    <button class="btn" id="modal-download">⬇️ Скачать</button>
+    <button class="btn" id="modal-share">📤 Поделиться</button>
+    <button class="btn danger" id="modal-close">✖ Закрыть</button>
+  </div>
 </div>
 
 <script>
 (() => {
   'use strict';
 
-  // ---------- Элементы ----------
+  // =================== Элементы ===================
+  const $ = (id) => document.getElementById(id);
   const el = {
-    video:        document.getElementById('preview'),
-    overlay:      document.getElementById('overlay'),
-    recIndicator: document.getElementById('rec-indicator'),
-    timer:        document.getElementById('timer'),
-    info:         document.getElementById('info'),
-    status:       document.getElementById('status'),
-    btnCamera:    document.getElementById('btn-camera'),
-    btnSwitch:    document.getElementById('btn-switch'),
-    btnPhoto:     document.getElementById('btn-photo'),
-    btnRecord:    document.getElementById('btn-record'),
-    width:        document.getElementById('width'),
-    height:       document.getElementById('height'),
-    fps:          document.getElementById('fps'),
-    vbitrate:     document.getElementById('vbitrate'),
-    abitrate:     document.getElementById('abitrate'),
-    jquality:     document.getElementById('jquality'),
+    // табы
+    tabs: document.querySelectorAll('.tab'),
+    views: document.querySelectorAll('.view'),
+    // камера
+    video: $('preview'), overlay: $('overlay'),
+    recIndicator: $('rec-indicator'), timer: $('timer'),
+    info: $('info'), status: $('status'),
+    btnCamera: $('btn-camera'), btnSwitch: $('btn-switch'),
+    btnPhoto: $('btn-photo'), btnRecord: $('btn-record'),
+    width: $('width'), height: $('height'), fps: $('fps'),
+    vbitrate: $('vbitrate'), abitrate: $('abitrate'), jquality: $('jquality'),
+    // галерея
+    galleryGrid: $('gallery-grid'), galleryEmpty: $('gallery-empty'),
+    galleryInfo: $('gallery-info'), btnClearAll: $('btn-clear-all'),
+    // модалка
+    modal: $('modal'), modalContent: $('modal-content'),
+    modalDownload: $('modal-download'), modalShare: $('modal-share'),
+    modalClose: $('modal-close'),
   };
 
-  // ---------- Состояние ----------
+  // =================== IndexedDB ===================
+  const DB_NAME = 'shaky_cam_db';
+  const DB_VERSION = 1;
+  const STORE = 'media';
+
+  function openDB() {
+    return new Promise((res, rej) => {
+      const req = indexedDB.open(DB_NAME, DB_VERSION);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains(STORE)) {
+          db.createObjectStore(STORE, { keyPath: 'id', autoIncrement: true });
+        }
+      };
+      req.onsuccess = () => res(req.result);
+      req.onerror = () => rej(req.error);
+    });
+  }
+
+  async function dbAdd(record) {
+    const db = await openDB();
+    return new Promise((res, rej) => {
+      const tx = db.transaction(STORE, 'readwrite');
+      const req = tx.objectStore(STORE).add(record);
+      req.onsuccess = () => res(req.result);
+      req.onerror = () => rej(req.error);
+    });
+  }
+
+  async function dbAll() {
+    const db = await openDB();
+    return new Promise((res, rej) => {
+      const tx = db.transaction(STORE, 'readonly');
+      const req = tx.objectStore(STORE).getAll();
+      req.onsuccess = () => res(req.result);
+      req.onerror = () => rej(req.error);
+    });
+  }
+
+  async function dbDelete(id) {
+    const db = await openDB();
+    return new Promise((res, rej) => {
+      const tx = db.transaction(STORE, 'readwrite');
+      const req = tx.objectStore(STORE).delete(id);
+      req.onsuccess = () => res();
+      req.onerror = () => rej(req.error);
+    });
+  }
+
+  async function dbClear() {
+    const db = await openDB();
+    return new Promise((res, rej) => {
+      const tx = db.transaction(STORE, 'readwrite');
+      const req = tx.objectStore(STORE).clear();
+      req.onsuccess = () => res();
+      req.onerror = () => rej(req.error);
+    });
+  }
+
+  // =================== Состояние ===================
   let currentStream = null;
   let mediaRecorder = null;
   let recordedChunks = [];
@@ -266,7 +392,7 @@
     ultra:  { width: 80,  height: 60,  fps: 3,  vbitrate: 30,  abitrate: 6,  jquality: 12 },
   };
 
-  // ---------- Утилиты ----------
+  // =================== Утилиты ===================
   function setStatus(text, kind) {
     el.status.textContent = text || '';
     el.status.className = 'status' + (kind ? ' ' + kind : '');
@@ -278,14 +404,25 @@
     return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
   }
 
+  function formatBytes(b) {
+    if (b < 1024) return b + ' Б';
+    if (b < 1024 * 1024) return (b / 1024).toFixed(1) + ' КБ';
+    return (b / 1024 / 1024).toFixed(2) + ' МБ';
+  }
+
+  function formatDate(ts) {
+    const d = new Date(ts);
+    return d.toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' });
+  }
+
   function getSettings() {
     return {
-      width:         Math.max(16, parseInt(el.width.value, 10) || 160),
-      height:        Math.max(16, parseInt(el.height.value, 10) || 120),
-      fps:           Math.max(1,  parseInt(el.fps.value, 10) || 5),
-      videoBitrate:  Math.max(1000,  (parseFloat(el.vbitrate.value) || 50) * 1000),
-      audioBitrate:  Math.max(1000,  (parseFloat(el.abitrate.value) || 8)  * 1000),
-      jpegQuality:   Math.min(1, Math.max(0.01, (parseInt(el.jquality.value, 10) || 30) / 100)),
+      width:        Math.max(16, parseInt(el.width.value, 10) || 160),
+      height:       Math.max(16, parseInt(el.height.value, 10) || 120),
+      fps:          Math.max(1,  parseInt(el.fps.value, 10) || 5),
+      videoBitrate: Math.max(1000, (parseFloat(el.vbitrate.value) || 50) * 1000),
+      audioBitrate: Math.max(1000, (parseFloat(el.abitrate.value) || 8)  * 1000),
+      jpegQuality:  Math.min(1, Math.max(0.01, (parseInt(el.jquality.value, 10) || 30) / 100)),
     };
   }
 
@@ -305,7 +442,15 @@
     return '';
   }
 
-  // ---------- UI состояния ----------
+  // =================== Табы ===================
+  function switchTab(name) {
+    el.tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+    el.views.forEach(v => v.classList.toggle('active', v.id === 'view-' + name));
+    if (name === 'gallery') renderGallery();
+  }
+  el.tabs.forEach(t => t.addEventListener('click', () => switchTab(t.dataset.tab)));
+
+  // =================== UI камеры ===================
   function updateUI() {
     const hasStream = !!currentStream;
     el.btnCamera.textContent = hasStream ? 'Выключить камеру' : 'Включить камеру';
@@ -320,10 +465,7 @@
   }
 
   function updateInfo() {
-    if (!currentStream || !el.video.videoWidth) {
-      el.info.textContent = '';
-      return;
-    }
+    if (!currentStream || !el.video.videoWidth) { el.info.textContent = ''; return; }
     const vt = currentStream.getVideoTracks()[0];
     const at = currentStream.getAudioTracks()[0];
     const st = vt && vt.getSettings ? vt.getSettings() : {};
@@ -333,32 +475,24 @@
       (at ? ' • микрофон подключён' : ' • без микрофона');
   }
 
-  // ---------- Камера ----------
+  // =================== Камера ===================
   async function startCamera() {
     const s = getSettings();
-    stopCamera(false); // тихо, без сообщений
+    stopCamera(false);
 
     const baseVideo = {
-      width:  { ideal: s.width  },
-      height: { ideal: s.height },
-      frameRate: { ideal: s.fps },
-      facingMode,
+      width: { ideal: s.width }, height: { ideal: s.height },
+      frameRate: { ideal: s.fps }, facingMode,
     };
     const baseAudio = {
-      echoCancellation: false,
-      noiseSuppression: false,
-      autoGainControl:  false,
-      channelCount:     { ideal: 1 },
-      sampleRate:       { ideal: 8000 },
+      echoCancellation: false, noiseSuppression: false, autoGainControl: false,
+      channelCount: { ideal: 1 }, sampleRate: { ideal: 8000 },
     };
 
-    let stream = null;
-    let audioOk = true;
-
+    let stream = null, audioOk = true;
     try {
       stream = await navigator.mediaDevices.getUserMedia({ video: baseVideo, audio: baseAudio });
     } catch (err) {
-      // Пробуем без микрофона — например, если микрофон занят другим приложением
       try {
         stream = await navigator.mediaDevices.getUserMedia({ video: baseVideo });
         audioOk = false;
@@ -374,9 +508,8 @@
 
     updateUI();
     updateInfo();
-
     if (audioOk) setStatus('Камера включена', 'success');
-    else         setStatus('Микрофон недоступен — видео будет без звука', 'error');
+    else         setStatus('Микрофон недоступен — видео без звука', 'error');
   }
 
   function stopCamera(showMessage = true) {
@@ -393,7 +526,7 @@
     if (showMessage) setStatus('Камера выключена');
   }
 
-  // ---------- Запись видео ----------
+  // =================== Запись видео ===================
   function startRecording() {
     if (!currentStream) return setStatus('Сначала включите камеру', 'error');
     if (isRecording) return;
@@ -417,19 +550,19 @@
     mediaRecorder.ondataavailable = (e) => {
       if (e.data && e.data.size > 0) recordedChunks.push(e.data);
     };
-    mediaRecorder.onstop = () => {
+    mediaRecorder.onstop = async () => {
       const actualType = (mediaRecorder && mediaRecorder.mimeType) || usedMimeType || 'video/webm';
       const baseType   = actualType.split(';')[0];
       const ext        = baseType.includes('mp4') ? 'mp4' : 'webm';
       const blob       = new Blob(recordedChunks, { type: baseType });
       recordedChunks   = [];
       const name = 'shaky_' + Date.now() + '.' + ext;
-      saveMedia(blob, name);
-      setStatus('Видео готово (' + (blob.size / 1024).toFixed(1) + ' КБ)', 'success');
+      await saveToGallery(blob, name, 'video');
+      setStatus('Видео сохранено в галерею (' + formatBytes(blob.size) + ')', 'success');
     };
 
     try {
-      mediaRecorder.start(1000); // выдавать чанки раз в секунду
+      mediaRecorder.start(1000);
     } catch (e) {
       setStatus('Не удалось начать запись: ' + e.message, 'error');
       return;
@@ -455,8 +588,8 @@
     updateUI();
   }
 
-  // ---------- Фото ----------
-  function takePhoto() {
+  // =================== Фото ===================
+  async function takePhoto() {
     if (!currentStream) return setStatus('Сначала включите камеру', 'error');
     const v = el.video;
     if (!v.videoWidth || !v.videoHeight) return setStatus('Камера ещё не готова', 'error');
@@ -465,44 +598,254 @@
     const canvas = document.createElement('canvas');
     canvas.width  = v.videoWidth;
     canvas.height = v.videoHeight;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+    canvas.getContext('2d').drawImage(v, 0, 0, canvas.width, canvas.height);
 
-    canvas.toBlob((blob) => {
+    canvas.toBlob(async (blob) => {
       if (!blob) return setStatus('Не удалось сделать фото', 'error');
       const name = 'shaky_' + Date.now() + '.jpg';
-      saveMedia(blob, name);
-      setStatus('Фото готово (' + (blob.size / 1024).toFixed(1) + ' КБ)', 'success');
+      await saveToGallery(blob, name, 'photo');
+      setStatus('Фото сохранено в галерею (' + formatBytes(blob.size) + ')', 'success');
     }, 'image/jpeg', s.jpegQuality);
   }
 
-  // ---------- Сохранение ----------
-  async function saveMedia(blob, fileName) {
-    // 1) Пробуем Web Share API — на телефоне откроется системное меню,
-    //    где есть «Сохранить видео/изображение» (прямо в галерею).
-    const file = new File([blob], fileName, { type: blob.type });
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+  // =================== Сохранение в галерею ===================
+  function blobToImage(blob) {
+    return new Promise((res, rej) => {
+      const img = new Image();
+      const url = URL.createObjectURL(blob);
+      img.onload = () => { URL.revokeObjectURL(url); res(img); };
+      img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('image load failed')); };
+      img.src = url;
+    });
+  }
+
+  async function makePhotoThumb(blob, size = 240) {
+    const img = await blobToImage(blob);
+    const scale = Math.min(size / img.naturalWidth, size / img.naturalHeight, 1);
+    const w = Math.max(1, Math.round(img.naturalWidth * scale));
+    const h = Math.max(1, Math.round(img.naturalHeight * scale));
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    c.getContext('2d').drawImage(img, 0, 0, w, h);
+    return new Promise(res => c.toBlob(res, 'image/jpeg', 0.6));
+  }
+
+  async function makeVideoThumb(blob, size = 240) {
+    return new Promise((res) => {
+      const v = document.createElement('video');
+      v.muted = true; v.playsInline = true; v.preload = 'metadata';
+      const url = URL.createObjectURL(blob);
+      v.src = url;
+      let done = false;
+      const finish = (result) => {
+        if (done) return;
+        done = true;
+        URL.revokeObjectURL(url);
+        res(result);
+      };
+      v.onloadeddata = () => {
+        try { v.currentTime = Math.min(0.1, v.duration || 0.1); } catch (_) { finish(null); }
+      };
+      v.onseeked = () => {
+        try {
+          const c = document.createElement('canvas');
+          const scale = Math.min(size / (v.videoWidth || size), size / (v.videoHeight || size), 1);
+          c.width  = Math.max(1, Math.round((v.videoWidth  || size) * scale));
+          c.height = Math.max(1, Math.round((v.videoHeight || size) * scale));
+          c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+          c.toBlob(b => finish(b), 'image/jpeg', 0.6);
+        } catch (_) { finish(null); }
+      };
+      v.onerror = () => finish(null);
+      setTimeout(() => finish(null), 3000); // страховка
+    });
+  }
+
+  async function saveToGallery(blob, name, type) {
+    let thumb = null;
+    try {
+      thumb = type === 'photo'
+        ? await makePhotoThumb(blob)
+        : await makeVideoThumb(blob);
+    } catch (_) {}
+
+    await dbAdd({
+      type, name, blob, thumb,
+      size: blob.size, mimeType: blob.type,
+      createdAt: Date.now(),
+    });
+  }
+
+  // =================== Галерея ===================
+  async function renderGallery() {
+    let items = [];
+    try { items = await dbAll(); } catch (e) { items = []; }
+
+    // свежие сверху
+    items.sort((a, b) => b.createdAt - a.createdAt);
+
+    el.galleryGrid.innerHTML = '';
+    if (!items.length) {
+      el.galleryEmpty.style.display = 'block';
+      el.galleryInfo.textContent = 'Пока пусто';
+      return;
+    }
+    el.galleryEmpty.style.display = 'none';
+
+    let totalSize = 0;
+    items.forEach(item => { totalSize += item.size || 0; });
+
+    let storageStr = '';
+    if (navigator.storage && navigator.storage.estimate) {
       try {
-        await navigator.share({ files: [file], title: 'Сохранить' });
-        return;
-      } catch (err) {
-        if (err && err.name === 'AbortError') return; // пользователь отменил
-        // иначе — падаем в download
-      }
+        const est = await navigator.storage.estimate();
+        if (est.usage != null) {
+          storageStr = ` · занято ${formatBytes(est.usage)}` +
+            (est.quota ? ` из ${formatBytes(est.quota)}` : '');
+        }
+      } catch (_) {}
     }
 
-    // 2) Резервный вариант — скачивание через <a download>
-    const url = URL.createObjectURL(blob);
+    el.galleryInfo.textContent =
+      `${items.length} файл(ов) · ${formatBytes(totalSize)}${storageStr}`;
+
+    items.forEach(item => {
+      const card = document.createElement('div');
+      card.className = 'card';
+
+      const thumbUrl = item.thumb
+        ? URL.createObjectURL(item.thumb)
+        : null;
+
+      const thumbEl = document.createElement(item.thumb ? 'img' : 'div');
+      thumbEl.className = 'thumb';
+      if (item.thumb) {
+        thumbEl.src = thumbUrl;
+        thumbEl.onload = () => URL.revokeObjectURL(thumbUrl);
+      } else {
+        thumbEl.style.display = 'flex';
+        thumbEl.style.alignItems = 'center';
+        thumbEl.style.justifyContent = 'center';
+        thumbEl.style.fontSize = '32px';
+        thumbEl.textContent = item.type === 'video' ? '🎬' : '🖼';
+      }
+      thumbEl.addEventListener('click', () => openModal(item));
+      card.appendChild(thumbEl);
+
+      const badge = document.createElement('div');
+      badge.className = 'badge';
+      badge.textContent = item.type === 'video' ? '🎬 ВИДЕО' : '📷 ФОТО';
+      card.appendChild(badge);
+
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      meta.innerHTML =
+        `<span class="name">${formatDate(item.createdAt)}</span>` +
+        `<span>${formatBytes(item.size || 0)}</span>`;
+      card.appendChild(meta);
+
+      const actions = document.createElement('div');
+      actions.className = 'card-actions';
+
+      const btnDl = document.createElement('button');
+      btnDl.textContent = '⬇️';
+      btnDl.title = 'Скачать';
+      btnDl.addEventListener('click', () => downloadItem(item));
+      actions.appendChild(btnDl);
+
+      const btnSh = document.createElement('button');
+      btnSh.textContent = '📤';
+      btnSh.title = 'Поделиться';
+      btnSh.addEventListener('click', () => shareItem(item));
+      actions.appendChild(btnSh);
+
+      const btnDel = document.createElement('button');
+      btnDel.textContent = '🗑';
+      btnDel.className = 'del';
+      btnDel.title = 'Удалить';
+      btnDel.addEventListener('click', async () => {
+        if (!confirm('Удалить «' + item.name + '»?')) return;
+        await dbDelete(item.id);
+        renderGallery();
+      });
+      actions.appendChild(btnDel);
+
+      card.appendChild(actions);
+      el.galleryGrid.appendChild(card);
+    });
+  }
+
+  // =================== Скачивание / Шеринг ===================
+  function downloadItem(item) {
+    const url = URL.createObjectURL(item.blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = fileName;
+    a.download = item.name;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
-  // ---------- Настройки: автоприменение ----------
+  async function shareItem(item) {
+    const file = new File([item.blob], item.name, { type: item.mimeType || item.blob.type });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: item.name });
+        return;
+      } catch (err) {
+        if (err && err.name === 'AbortError') return;
+      }
+    }
+    // fallback
+    downloadItem(item);
+  }
+
+  // =================== Модалка ===================
+  let modalItem = null;
+
+  function openModal(item) {
+    modalItem = item;
+    el.modalContent.innerHTML = '';
+    const url = URL.createObjectURL(item.blob);
+
+    if (item.type === 'photo') {
+      const img = document.createElement('img');
+      img.src = url;
+      img.onload = () => URL.revokeObjectURL(url);
+      el.modalContent.appendChild(img);
+    } else {
+      const v = document.createElement('video');
+      v.src = url;
+      v.controls = true;
+      v.autoplay = true;
+      v.playsInline = true;
+      el.modalContent.appendChild(v);
+    }
+    el.modal.classList.add('open');
+  }
+
+  function closeModal() {
+    el.modal.classList.remove('open');
+    el.modalContent.innerHTML = '';
+    modalItem = null;
+  }
+
+  el.modalClose.addEventListener('click', closeModal);
+  el.modal.addEventListener('click', (e) => {
+    if (e.target === el.modal) closeModal();
+  });
+  el.modalDownload.addEventListener('click', () => { if (modalItem) downloadItem(modalItem); });
+  el.modalShare.addEventListener('click',    () => { if (modalItem) shareItem(modalItem); });
+
+  // =================== Очистка всей галереи ===================
+  el.btnClearAll.addEventListener('click', async () => {
+    if (!confirm('Удалить ВСЕ файлы из галереи? Это необратимо.')) return;
+    await dbClear();
+    renderGallery();
+  });
+
+  // =================== Настройки: автоприменение ===================
   function scheduleCameraRestart() {
     if (!currentStream) return;
     if (isRecording) {
@@ -515,20 +858,15 @@
     }, 400);
   }
 
-  // ---------- Обработчики ----------
+  // =================== Обработчики камеры ===================
   el.btnCamera.addEventListener('click', async () => {
-    if (currentStream) {
-      stopCamera();
-    } else {
-      try { await startCamera(); } catch (_) {}
-    }
+    if (currentStream) stopCamera();
+    else { try { await startCamera(); } catch (_) {} }
   });
 
   el.btnSwitch.addEventListener('click', async () => {
     facingMode = facingMode === 'environment' ? 'user' : 'environment';
-    if (currentStream) {
-      try { await startCamera(); } catch (_) {}
-    }
+    if (currentStream) { try { await startCamera(); } catch (_) {} }
   });
 
   el.btnPhoto.addEventListener('click', takePhoto);
@@ -538,41 +876,40 @@
     else startRecording();
   });
 
-  // Пресеты
   document.querySelectorAll('.preset').forEach(btn => {
     btn.addEventListener('click', () => {
       const p = presets[btn.dataset.preset];
       if (!p) return;
-      el.width.value    = p.width;
-      el.height.value   = p.height;
-      el.fps.value      = p.fps;
-      el.vbitrate.value = p.vbitrate;
-      el.abitrate.value = p.abitrate;
+      el.width.value = p.width; el.height.value = p.height;
+      el.fps.value = p.fps;
+      el.vbitrate.value = p.vbitrate; el.abitrate.value = p.abitrate;
       el.jquality.value = p.jquality;
       scheduleCameraRestart();
     });
   });
 
-  // Все поля настроек
   [el.width, el.height, el.fps, el.vbitrate, el.abitrate, el.jquality]
     .forEach(inp => inp.addEventListener('input', scheduleCameraRestart));
 
-  // Метаданные видео — обновим инфо-строку
   el.video.addEventListener('loadedmetadata', updateInfo);
 
-  // При закрытии страницы — освобождаем камеру
   window.addEventListener('pagehide', () => stopCamera(false));
 
-  // Проверка защищённого контекста
+  // =================== Инициализация ===================
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     setStatus(
       '⚠️ Браузер не даёт доступ к камере. Нужен HTTPS (GitHub Pages подходит) ' +
-      'и современный браузер.',
-      'error'
+      'и современный браузер.', 'error'
     );
   }
 
+  // Просим persistent storage, чтобы браузер не удалил наши файлы
+  if (navigator.storage && navigator.storage.persist) {
+    navigator.storage.persist().catch(() => {});
+  }
+
   updateUI();
+  renderGallery();
 })();
 </script>
 </body>
